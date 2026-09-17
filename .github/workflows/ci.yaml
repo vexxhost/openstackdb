@@ -35,3 +35,21 @@ jobs:
         with:
           go-version-file: go.mod
       - run: go test -v -race -tags integration -timeout 15m ./...
+  exporter-compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417
+        with:
+          go-version-file: go.mod
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: vexxhost/openstack_database_exporter
+          ref: 048dc24060220a58bf3082eeebef28f674e88919
+          path: downstream-exporter
+      - name: Test exporter against this module
+        working-directory: downstream-exporter
+        run: |
+          go mod edit -replace=github.com/vexxhost/openstackdb="$GITHUB_WORKSPACE"
+          go test -race -tags integration -timeout 15m ./...
+          go build -o /dev/null ./cmd/openstack-database-exporter
