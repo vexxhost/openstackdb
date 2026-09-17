@@ -68,6 +68,24 @@ func TestCinderQueries(t *testing.T) {
 	require.NoError(t, err, "VolumeTypeGetAll")
 	_, err = q.SnapshotCount(ctx)
 	require.NoError(t, err, "SnapshotCount")
+	// No service_uuid index is present: NULL and populated values both match.
+	testutil.SeedSQL(t, conn,
+		`INSERT INTO volume_types(id,name,deleted) VALUES ('type','fast',0)`,
+		`INSERT INTO volumes(id,volume_type_id,service_uuid,deleted) VALUES ('active-null','type',NULL,0),('active-service','type','svc',0),('deleted','type','svc',1)`,
+		`INSERT INTO volume_attachment(id,volume_id,instance_uuid,deleted) VALUES ('a','active-service','server',0),('b','active-service','old-server',1)`,
+	)
+	volumes, err := q.VolumeGetAllWithAttachments(ctx)
+	require.NoError(t, err)
+	require.Len(t, volumes, 2)
+	byID := make(map[string]cinder.VolumeGetAllWithAttachmentsRow)
+	for _, volume := range volumes {
+		byID[volume.ID] = volume
+	}
+	require.Contains(t, byID, "active-null")
+	require.Contains(t, byID, "active-service")
+	require.Equal(t, "fast", byID["active-null"].VolumeType.String)
+	require.False(t, byID["active-null"].ServerID.Valid)
+	require.Equal(t, "server", byID["active-service"].ServerID.String)
 	_, err = q.VolumeGetAllWithAttachments(ctx)
 	require.NoError(t, err, "VolumeGetAllWithAttachments")
 	_, err = q.VolumeGetAll(ctx)
