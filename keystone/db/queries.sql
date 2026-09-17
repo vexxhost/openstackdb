@@ -46,3 +46,6 @@ SELECT
     name,
     COALESCE(description, '') as description
 FROM `group`;
+-- name: GetProject :one
+SELECT id, name, enabled, domain_id, is_domain
+FROM project WHERE id = ?;

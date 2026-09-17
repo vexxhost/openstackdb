@@ -68,7 +68,40 @@ Soft-deleted records are excluded by default. Set `Deleted` to
 `DeletedAfter` and `CreatedBefore` must either both be zero or define a nonempty
 half-open lifetime window: `created_at < end AND (deleted_at IS NULL OR deleted_at > start)`.
 Times are converted to UTC; these predicates assume UTC database timestamps.
-The methods query primary service tables, not Nova shadow/archive tables.
+Nova `InstanceFilters.Archive` selects primary tables, shadow tables, or both.
+`WithExtra` joins the corresponding instance-extra table for raw flavor JSON.
+Missing extra rows preserve the instance with a null flavor. Missing requested
+archive tables are errors; the library never substitutes an incomplete result.
+Use `WithTx` with an appropriate transaction isolation level for a consistent
+primary/shadow snapshot. Rows carry an `Archived` flag; no deduplication is applied.
+
+`IncludeStartBoundary` includes rows deleted exactly at the window start.
+`DeletedAtIsNull` filters by deletion timestamp independently of the soft-delete
+flag; combine it with `Deleted: openstackdb.IncludeDeleted` for timestamp-only
+selection. Default interval/deletion semantics remain unchanged.
+
+Filtered Nova results use `InstanceRecord` (including `CreatedAt`, `DeletedAt`,
+`Hostname`, and optional `Flavor`). Filtered Glance results use `ImageRecord`
+(including `DeletedAt`). These embed the original exporter row projections.
+Cinder records preserve nullable volume type IDs for older service schemas.
+
+## Metadata and lookup operations
+
+- Nova `InstanceExtraGetByInstanceUUID` reads flavor JSON, with optional archived
+  access, following upstream `instance_extra_get_by_instance_uuid` naming.
+- Nova `InstanceTypeGetAll` reads legacy type identities, following historical
+  `instance_type_get_all` naming. `Inactive` includes deleted types; `Archived`
+  selects `shadow_instance_types`. Modern `FlavorGetAll` remains in `nova/db/api`.
+- Cinder `VolumeTypeGetAll(ctx, VolumeTypeOptions{Inactive: true})` includes deleted
+  types, matching the upstream `inactive` option. Existing calls remain valid.
+- Keystone `GetProject` returns a project by ID, including disabled projects.
+
+Record sizes and flavor JSON are returned without rounding, unit conversion, or
+interpretation. Callers own region aggregation and configured default-type fallback.
+
+The richer filtered Nova/Glance result types change explicit result declarations
+from the initial release; field access remains promoted through the embedded row.
+The fixed exporter queries and their result projections remain unchanged.
 
 Single-resource methods return `sql.ErrNoRows` for absent or excluded records.
 List methods do not promise ordering or pagination; constrain project/resource

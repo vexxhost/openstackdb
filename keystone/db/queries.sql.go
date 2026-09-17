@@ -10,6 +10,32 @@ import (
 	"database/sql"
 )
 
+const GetProject = `-- name: GetProject :one
+SELECT id, name, enabled, domain_id, is_domain
+FROM project WHERE id = ?
+`
+
+type GetProjectRow struct {
+	ID       string
+	Name     string
+	Enabled  sql.NullBool
+	DomainID string
+	IsDomain bool
+}
+
+func (q *Queries) GetProject(ctx context.Context, id string) (GetProjectRow, error) {
+	row := q.db.QueryRowContext(ctx, GetProject, id)
+	var i GetProjectRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Enabled,
+		&i.DomainID,
+		&i.IsDomain,
+	)
+	return i, err
+}
+
 const ListDomains = `-- name: ListDomains :many
 SELECT 
     id,

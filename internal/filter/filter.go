@@ -53,6 +53,18 @@ func (b *Builder) Lifetime(created, deleted string, start, end time.Time) error 
 	return nil
 }
 
+// LifetimeIncludingStart also includes rows deleted exactly at start.
+func (b *Builder) LifetimeIncludingStart(created, deleted string, start, end time.Time) error {
+	if err := b.Lifetime(created, deleted, start, end); err != nil {
+		return err
+	}
+	if !start.IsZero() {
+		last := len(b.Clauses) - 1
+		b.Clauses[last] = "(" + deleted + " IS NULL OR " + deleted + " >= ?)"
+	}
+	return nil
+}
+
 func (b *Builder) SQL(base string) (string, []any) {
 	if len(b.Clauses) != 0 {
 		base += " WHERE " + strings.Join(b.Clauses, " AND ")

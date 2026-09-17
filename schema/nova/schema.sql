@@ -128,3 +128,89 @@ CREATE TABLE IF NOT EXISTS
         UNIQUE KEY uniq_compute_nodes0host0hypervisor_hostname0deleted (`host`, `hypervisor_hostname`, `deleted`),
         UNIQUE KEY compute_nodes_uuid_idx (`uuid`)
     );
+
+-- Optional archive/legacy fixtures. Readers access these only when requested.
+CREATE TABLE IF NOT EXISTS instance_extra (
+ id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ instance_uuid VARCHAR(36) NOT NULL,
+ flavor MEDIUMTEXT NULL,
+ UNIQUE KEY instance_extra_instance_uuid_idx (instance_uuid)
+);
+CREATE TABLE IF NOT EXISTS
+    `shadow_instances` (
+        `created_at` DATETIME NULL,
+        `updated_at` DATETIME NULL,
+        `deleted_at` DATETIME NULL,
+        `id` INT NOT NULL AUTO_INCREMENT,
+        `internal_id` INT NULL,
+        `user_id` VARCHAR(255) NULL,
+        `project_id` VARCHAR(255) NULL,
+        `image_ref` VARCHAR(255) NULL,
+        `kernel_id` VARCHAR(255) NULL,
+        `ramdisk_id` VARCHAR(255) NULL,
+        `launch_index` INT NULL,
+        `key_name` VARCHAR(255) NULL,
+        `key_data` MEDIUMTEXT NULL,
+        `power_state` INT NULL,
+        `vm_state` VARCHAR(255) NULL,
+        `memory_mb` INT NULL,
+        `vcpus` INT NULL,
+        `hostname` VARCHAR(255) NULL,
+        `host` VARCHAR(255) NULL,
+        `user_data` MEDIUMTEXT NULL,
+        `reservation_id` VARCHAR(255) NULL,
+        `launched_at` DATETIME NULL,
+        `terminated_at` DATETIME NULL,
+        `display_name` VARCHAR(255) NULL,
+        `display_description` VARCHAR(255) NULL,
+        `availability_zone` VARCHAR(255) NULL,
+        `locked` TINYINT(1) NULL,
+        `os_type` VARCHAR(255) NULL,
+        `launched_on` MEDIUMTEXT NULL,
+        `instance_type_id` INT NULL,
+        `vm_mode` VARCHAR(255) NULL,
+        `uuid` VARCHAR(36) NOT NULL,
+        `architecture` VARCHAR(255) NULL,
+        `root_device_name` VARCHAR(255) NULL,
+        `access_ip_v4` VARCHAR(39) NULL,
+        `access_ip_v6` VARCHAR(39) NULL,
+        `config_drive` VARCHAR(255) NULL,
+        `task_state` VARCHAR(255) NULL,
+        `default_ephemeral_device` VARCHAR(255) NULL,
+        `default_swap_device` VARCHAR(255) NULL,
+        `progress` INT NULL,
+        `auto_disk_config` TINYINT(1) NULL,
+        `shutdown_terminate` TINYINT(1) NULL,
+        `disable_terminate` TINYINT(1) NULL,
+        `root_gb` INT NULL,
+        `ephemeral_gb` INT NULL,
+        `cell_name` VARCHAR(255) NULL,
+        `node` VARCHAR(255) NULL,
+        `deleted` INT NULL,
+        `locked_by` ENUM('owner','admin') NULL,
+        `cleaned` INT NULL,
+        `ephemeral_key_uuid` VARCHAR(36) NULL,
+        `hidden` TINYINT(1) NULL,
+        `compute_id` BIGINT NULL,
+        PRIMARY KEY (`id`),
+        UNIQUE KEY uniq_instances0uuid (`uuid`),
+        KEY instances_project_id_deleted_idx (`project_id`, `deleted`),
+        KEY instances_host_deleted_cleaned_idx (`host`, `deleted`, `cleaned`),
+        KEY instances_uuid_deleted_idx (`uuid`, `deleted`)
+    );
+CREATE TABLE IF NOT EXISTS shadow_instance_extra (
+ id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ instance_uuid VARCHAR(36) NOT NULL,
+ flavor MEDIUMTEXT NULL,
+ UNIQUE KEY instance_extra_instance_uuid_idx (instance_uuid)
+);
+CREATE TABLE IF NOT EXISTS instance_types (
+ id INT NOT NULL PRIMARY KEY,
+ name VARCHAR(255) NULL,
+ deleted INT NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS shadow_instance_types (
+ id INT NOT NULL PRIMARY KEY,
+ name VARCHAR(255) NULL,
+ deleted INT NOT NULL DEFAULT 0
+);

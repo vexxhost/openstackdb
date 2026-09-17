@@ -54,7 +54,7 @@ FROM
 WHERE
     q.deleted = 0;
 
--- name: VolumeTypeGetAll :many
+-- name: VolumeTypeGetAllCurrent :many
 SELECT
     id,
     name

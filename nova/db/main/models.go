@@ -52,6 +52,48 @@ func (ns NullInstancesLockedBy) Value() (driver.Value, error) {
 	return string(ns.InstancesLockedBy), nil
 }
 
+type ShadowInstancesLockedBy string
+
+const (
+	ShadowInstancesLockedByOwner ShadowInstancesLockedBy = "owner"
+	ShadowInstancesLockedByAdmin ShadowInstancesLockedBy = "admin"
+)
+
+func (e *ShadowInstancesLockedBy) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ShadowInstancesLockedBy(s)
+	case string:
+		*e = ShadowInstancesLockedBy(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ShadowInstancesLockedBy: %T", src)
+	}
+	return nil
+}
+
+type NullShadowInstancesLockedBy struct {
+	ShadowInstancesLockedBy ShadowInstancesLockedBy
+	Valid                   bool // Valid is true if ShadowInstancesLockedBy is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullShadowInstancesLockedBy) Scan(value interface{}) error {
+	if value == nil {
+		ns.ShadowInstancesLockedBy, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ShadowInstancesLockedBy.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullShadowInstancesLockedBy) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ShadowInstancesLockedBy), nil
+}
+
 type ComputeNode struct {
 	CreatedAt           sql.NullTime
 	UpdatedAt           sql.NullTime
@@ -146,6 +188,18 @@ type Instance struct {
 	ComputeID              sql.NullInt64
 }
 
+type InstanceExtra struct {
+	ID           int32
+	InstanceUuid string
+	Flavor       sql.NullString
+}
+
+type InstanceType struct {
+	ID      int32
+	Name    sql.NullString
+	Deleted int32
+}
+
 type Service struct {
 	CreatedAt      sql.NullTime
 	UpdatedAt      sql.NullTime
@@ -162,4 +216,73 @@ type Service struct {
 	ForcedDown     sql.NullBool
 	Version        sql.NullInt32
 	Uuid           sql.NullString
+}
+
+type ShadowInstance struct {
+	CreatedAt              sql.NullTime
+	UpdatedAt              sql.NullTime
+	DeletedAt              sql.NullTime
+	ID                     int32
+	InternalID             sql.NullInt32
+	UserID                 sql.NullString
+	ProjectID              sql.NullString
+	ImageRef               sql.NullString
+	KernelID               sql.NullString
+	RamdiskID              sql.NullString
+	LaunchIndex            sql.NullInt32
+	KeyName                sql.NullString
+	KeyData                sql.NullString
+	PowerState             sql.NullInt32
+	VmState                sql.NullString
+	MemoryMb               sql.NullInt32
+	Vcpus                  sql.NullInt32
+	Hostname               sql.NullString
+	Host                   sql.NullString
+	UserData               sql.NullString
+	ReservationID          sql.NullString
+	LaunchedAt             sql.NullTime
+	TerminatedAt           sql.NullTime
+	DisplayName            sql.NullString
+	DisplayDescription     sql.NullString
+	AvailabilityZone       sql.NullString
+	Locked                 sql.NullBool
+	OsType                 sql.NullString
+	LaunchedOn             sql.NullString
+	InstanceTypeID         sql.NullInt32
+	VmMode                 sql.NullString
+	Uuid                   string
+	Architecture           sql.NullString
+	RootDeviceName         sql.NullString
+	AccessIpV4             sql.NullString
+	AccessIpV6             sql.NullString
+	ConfigDrive            sql.NullString
+	TaskState              sql.NullString
+	DefaultEphemeralDevice sql.NullString
+	DefaultSwapDevice      sql.NullString
+	Progress               sql.NullInt32
+	AutoDiskConfig         sql.NullBool
+	ShutdownTerminate      sql.NullBool
+	DisableTerminate       sql.NullBool
+	RootGb                 sql.NullInt32
+	EphemeralGb            sql.NullInt32
+	CellName               sql.NullString
+	Node                   sql.NullString
+	Deleted                sql.NullInt32
+	LockedBy               NullShadowInstancesLockedBy
+	Cleaned                sql.NullInt32
+	EphemeralKeyUuid       sql.NullString
+	Hidden                 sql.NullBool
+	ComputeID              sql.NullInt64
+}
+
+type ShadowInstanceExtra struct {
+	ID           int32
+	InstanceUuid string
+	Flavor       sql.NullString
+}
+
+type ShadowInstanceType struct {
+	ID      int32
+	Name    sql.NullString
+	Deleted int32
 }

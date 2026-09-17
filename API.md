@@ -77,4 +77,20 @@ with identical semantics upstream.
 - Current exporter queries retain their existing deleted/hidden/status predicates; they are not full upstream administrative listings.
 - Errors are Go/database errors; absent single resources return `sql.ErrNoRows` rather than Python service-specific exceptions.
 - Aggregate queries such as `QuotaGetAllWithUsage`, `GetResourceProviderInventories`, and `GetResourceCountsByProject` are explicitly library extensions.
-- No cross-cell routing, Nova archive union, or historic schema negotiation is performed.
+- No cross-cell routing or historic schema negotiation is performed. Nova archive access is explicitly selected with `InstanceFilters.Archive`.
+
+## Resource lifecycle and metadata reads
+
+| Go operation | Upstream naming source | Scope |
+| --- | --- | --- |
+| `InstanceGetAllByFilters` | Nova `instance_get_all_by_filters` | Adds explicit archive and extra-metadata options; preserves timestamp fields. |
+| `InstanceExtraGetByInstanceUUID` | Nova `instance_extra_get_by_instance_uuid` | Raw flavor projection, optional shadow table; absent rows return `sql.ErrNoRows`. |
+| `InstanceTypeGetAll` | [Historical Nova `instance_type_get_all`](https://github.com/openstack/nova/blob/2012.1/nova/db/sqlalchemy/api.py) | Legacy type identity projection, `Inactive`, explicit `Archived` extension. |
+| `VolumeTypeGetAll` | Cinder `volume_type_get_all(inactive=...)` | Optional `Inactive` includes deleted types; returns identity rows rather than a keyed Python dictionary. |
+| `GetProject` | [Keystone resource backend `get_project`](https://github.com/openstack/keystone/blob/master/keystone/resource/backends/sql.py) | ID/name/enabled/domain projection; does not implement request authorization or hidden-reference policy. |
+
+Instance and image filtered/single-resource APIs return richer record types with
+lifecycle metadata. Their fixed current-resource queries remain unchanged for
+exporter consumers. Deleted volume types and legacy type tables are only read
+when explicitly requested. Legacy table availability is a caller/deployment
+concern; errors are propagated rather than hidden.
