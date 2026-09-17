@@ -1,0 +1,98 @@
+version: '2'
+sql:
+- engine: mysql
+  schema: schema/nova/schema.sql
+  queries: nova/db/main/queries.sql
+  gen:
+    go:
+      package: nova
+      out: nova/db/main
+      emit_exported_queries: true
+- engine: mysql
+  schema: schema/nova_api/schema.sql
+  queries: nova/db/api/queries.sql
+  gen:
+    go:
+      package: novaapi
+      out: nova/db/api
+      emit_exported_queries: true
+- engine: mysql
+  schema: schema/cinder/schema.sql
+  queries: cinder/db/queries.sql
+  gen:
+    go:
+      package: cinder
+      out: cinder/db
+      emit_exported_queries: true
+- engine: mysql
+  schema: schema/glance/schema.sql
+  queries: glance/db/queries.sql
+  gen:
+    go:
+      package: glance
+      out: glance/db
+      emit_exported_queries: true
+- engine: mysql
+  schema: schema/keystone/schema.sql
+  queries: keystone/db/queries.sql
+  gen:
+    go:
+      package: keystone
+      out: keystone/db
+      emit_exported_queries: true
+- engine: mysql
+  schema: schema/heat/schema.sql
+  queries: heat/db/queries.sql
+  gen:
+    go:
+      package: heat
+      out: heat/db
+      emit_exported_queries: true
+- engine: mysql
+  schema: schema/ironic/schema.sql
+  queries: ironic/db/queries.sql
+  gen:
+    go:
+      package: ironic
+      out: ironic/db
+      emit_exported_queries: true
+- engine: mysql
+  schema: schema/magnum/schema.sql
+  queries: magnum/db/queries.sql
+  gen:
+    go:
+      package: magnum
+      out: magnum/db
+      emit_exported_queries: true
+- engine: mysql
+  schema: schema/manila/schema.sql
+  queries: manila/db/queries.sql
+  gen:
+    go:
+      package: manila
+      out: manila/db
+      emit_exported_queries: true
+- engine: mysql
+  schema: schema/neutron/schema.sql
+  queries: neutron/db/queries.sql
+  gen:
+    go:
+      package: neutron
+      out: neutron/db
+      emit_exported_queries: true
+- engine: mysql
+  schema: schema/octavia/schema.sql
+  queries: octavia/db/repositories/queries.sql
+  gen:
+    go:
+      package: octavia
+      out: octavia/db/repositories
+      emit_exported_queries: true
+- engine: mysql
+  schema: schema/placement/schema.sql
+  queries: placement/objects/queries.sql
+  gen:
+    go:
+      package: placement
+      out: placement/objects
+      emit_exported_queries: true

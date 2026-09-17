@@ -1,0 +1,7 @@
+openstackdb
+Copyright VEXXHOST, Inc. and contributors.
+
+The initial SQL queries, schema fixtures, and connection helpers were extracted
+from https://github.com/vexxhost/openstack_database_exporter under Apache-2.0.
+OpenStack service names and DB API conventions refer to their respective
+upstream OpenStack projects. This library is an independent Go implementation.
