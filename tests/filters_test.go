@@ -59,8 +59,8 @@ func TestInstanceFilters(t *testing.T) {
 
 func TestVolumeFilters(t *testing.T) {
 	conn := testutil.NewMySQLContainer(t, "volume-filters", "../sql/cinder/schema.sql")
-	testutil.SeedSQL(t, conn, `INSERT INTO volumes (id, project_id, size, deleted) VALUES
- ('v1', 'p1', 10, 0), ('v2', 'p1', 20, 1), ('v3', 'p2', 30, 0)`)
+	testutil.SeedSQL(t, conn, `INSERT INTO volumes (id, project_id, size, deleted, volume_type_id) VALUES
+ ('v1', 'p1', 10, 0, 'type1'), ('v2', 'p1', 20, 1, 'type1'), ('v3', 'p2', 30, 0, 'type1')`)
 	q := cinder.New(conn)
 	rows, err := q.VolumeGetAllByFilters(context.Background(), cinder.VolumeFilters{ProjectIDs: []string{"p1"}, Deleted: db.IncludeDeleted})
 	require.NoError(t, err)
