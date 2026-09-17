@@ -99,7 +99,7 @@ CREATE TABLE
         `provider_location` varchar(256) DEFAULT NULL,
         `provider_auth` varchar(256) DEFAULT NULL,
         `snapshot_id` varchar(36) DEFAULT NULL,
-        `volume_type_id` varchar(36) NOT NULL,
+        `volume_type_id` varchar(36) DEFAULT NULL,
         `source_volid` varchar(36) DEFAULT NULL,
         `bootable` tinyint (1) DEFAULT NULL,
         `provider_geometry` varchar(255) DEFAULT NULL,

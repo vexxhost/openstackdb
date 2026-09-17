@@ -104,7 +104,7 @@ type Volume struct {
 	ProviderLocation          sql.NullString
 	ProviderAuth              sql.NullString
 	SnapshotID                sql.NullString
-	VolumeTypeID              string
+	VolumeTypeID              sql.NullString
 	SourceVolid               sql.NullString
 	Bootable                  sql.NullBool
 	ProviderGeometry          sql.NullString

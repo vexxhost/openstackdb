@@ -229,7 +229,7 @@ type VolumeGetAllRow struct {
 	ID           string
 	ProjectID    sql.NullString
 	Size         sql.NullInt32
-	VolumeTypeID string
+	VolumeTypeID sql.NullString
 	Status       sql.NullString
 	CreatedAt    sql.NullTime
 	DeletedAt    sql.NullTime
@@ -334,7 +334,7 @@ func (q *Queries) VolumeGetAllWithAttachments(ctx context.Context) ([]VolumeGetA
 	return items, nil
 }
 
-const VolumeTypeGetAll = `-- name: VolumeTypeGetAll :many
+const VolumeTypeGetAllCurrent = `-- name: VolumeTypeGetAllCurrent :many
 SELECT
     id,
     name
@@ -344,20 +344,20 @@ WHERE
     deleted = 0
 `
 
-type VolumeTypeGetAllRow struct {
+type VolumeTypeGetAllCurrentRow struct {
 	ID   string
 	Name sql.NullString
 }
 
-func (q *Queries) VolumeTypeGetAll(ctx context.Context) ([]VolumeTypeGetAllRow, error) {
-	rows, err := q.db.QueryContext(ctx, VolumeTypeGetAll)
+func (q *Queries) VolumeTypeGetAllCurrent(ctx context.Context) ([]VolumeTypeGetAllCurrentRow, error) {
+	rows, err := q.db.QueryContext(ctx, VolumeTypeGetAllCurrent)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []VolumeTypeGetAllRow
+	var items []VolumeTypeGetAllCurrentRow
 	for rows.Next() {
-		var i VolumeTypeGetAllRow
+		var i VolumeTypeGetAllCurrentRow
 		if err := rows.Scan(&i.ID, &i.Name); err != nil {
 			return nil, err
 		}

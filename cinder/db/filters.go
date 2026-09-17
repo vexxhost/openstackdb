@@ -13,13 +13,15 @@ import (
 // CreatedBefore and DeletedAfter form an optional half-open lifetime window.
 // The zero deletion policy excludes soft-deleted records.
 type VolumeFilters struct {
-	IDs           []string
-	ProjectIDs    []string
-	Statuses      []string
-	VolumeTypeIDs []string
-	Deleted       db.Deleted
-	CreatedBefore time.Time
-	DeletedAfter  time.Time
+	IDs                  []string
+	ProjectIDs           []string
+	Statuses             []string
+	VolumeTypeIDs        []string
+	Deleted              db.Deleted
+	CreatedBefore        time.Time
+	DeletedAfter         time.Time
+	IncludeStartBoundary bool
+	DeletedAtIsNull      bool
 }
 
 // VolumeGetAllByFilters returns the resource projection for matching database records.
@@ -33,8 +35,15 @@ func (q *Queries) VolumeGetAllByFilters(ctx context.Context, f VolumeFilters) ([
 	b.Strings("project_id", f.ProjectIDs)
 	b.Strings("status", f.Statuses)
 	b.Strings("volume_type_id", f.VolumeTypeIDs)
-	if err := b.Lifetime("created_at", "deleted_at", f.DeletedAfter, f.CreatedBefore); err != nil {
+	lifetime := b.Lifetime
+	if f.IncludeStartBoundary {
+		lifetime = b.LifetimeIncludingStart
+	}
+	if err := lifetime("created_at", "deleted_at", f.DeletedAfter, f.CreatedBefore); err != nil {
 		return nil, err
+	}
+	if f.DeletedAtIsNull {
+		b.Clauses = append(b.Clauses, "deleted_at IS NULL")
 	}
 	query, args := b.SQL(`SELECT id, project_id, size, volume_type_id, status, created_at, deleted_at
 FROM volumes`)

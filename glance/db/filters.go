@@ -8,6 +8,12 @@ import (
 	"time"
 )
 
+// ImageRecord extends the current-resource projection with lifecycle metadata.
+type ImageRecord struct {
+	ImageGetAllRow
+	DeletedAt sql.NullTime
+}
+
 // ImageFilters combines exact-match filters with AND. Values within a slice use OR.
 // Nil slices are unrestricted; non-nil empty slices match no records.
 // CreatedBefore and DeletedAfter form an optional half-open lifetime window.
@@ -20,11 +26,15 @@ type ImageFilters struct {
 	Deleted       db.Deleted
 	CreatedBefore time.Time
 	DeletedAfter  time.Time
+	// IncludeStartBoundary includes records deleted exactly at DeletedAfter.
+	IncludeStartBoundary bool
+	// DeletedAtIsNull adds a deleted_at IS NULL predicate independently of Deleted.
+	DeletedAtIsNull bool
 }
 
 // ImageGetAllByFilters returns the resource projection for matching database records.
 // It does not perform OpenStack authorization, cell discovery, or archive searches.
-func (q *Queries) ImageGetAllByFilters(ctx context.Context, f ImageFilters) ([]ImageGetAllRow, error) {
+func (q *Queries) ImageGetAllByFilters(ctx context.Context, f ImageFilters) ([]ImageRecord, error) {
 	var b filter.Builder
 	if err := b.Deleted("deleted", f.Deleted); err != nil {
 		return nil, err
@@ -33,8 +43,15 @@ func (q *Queries) ImageGetAllByFilters(ctx context.Context, f ImageFilters) ([]I
 	b.Strings("owner", f.ProjectIDs)
 	b.Strings("status", f.Statuses)
 	b.Strings("visibility", f.Visibilities)
-	if err := b.Lifetime("created_at", "deleted_at", f.DeletedAfter, f.CreatedBefore); err != nil {
+	lifetime := b.Lifetime
+	if f.IncludeStartBoundary {
+		lifetime = b.LifetimeIncludingStart
+	}
+	if err := lifetime("created_at", "deleted_at", f.DeletedAfter, f.CreatedBefore); err != nil {
 		return nil, err
+	}
+	if f.DeletedAtIsNull {
+		b.Clauses = append(b.Clauses, "deleted_at IS NULL")
 	}
 	query, args := b.SQL(`SELECT
     id,
@@ -54,7 +71,8 @@ func (q *Queries) ImageGetAllByFilters(ctx context.Context, f ImageFilters) ([]I
     virtual_size,
     os_hidden,
     os_hash_algo,
-    os_hash_value
+    os_hash_value,
+    deleted_at
 FROM
     images`)
 	rows, err := q.db.QueryContext(ctx, query, args...)
@@ -62,9 +80,9 @@ FROM
 		return nil, err
 	}
 	defer rows.Close()
-	result := make([]ImageGetAllRow, 0)
+	result := make([]ImageRecord, 0)
 	for rows.Next() {
-		var i ImageGetAllRow
+		var i ImageRecord
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -84,6 +102,7 @@ FROM
 			&i.OsHidden,
 			&i.OsHashAlgo,
 			&i.OsHashValue,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -96,13 +115,13 @@ FROM
 }
 
 // ImageGet returns one undeleted resource, or sql.ErrNoRows when absent.
-func (q *Queries) ImageGet(ctx context.Context, id string) (ImageGetAllRow, error) {
+func (q *Queries) ImageGet(ctx context.Context, id string) (ImageRecord, error) {
 	rows, err := q.ImageGetAllByFilters(ctx, ImageFilters{IDs: []string{id}})
 	if err != nil {
-		return ImageGetAllRow{}, err
+		return ImageRecord{}, err
 	}
 	if len(rows) == 0 {
-		return ImageGetAllRow{}, sql.ErrNoRows
+		return ImageRecord{}, sql.ErrNoRows
 	}
 	return rows[0], nil
 }
