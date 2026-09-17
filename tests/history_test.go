@@ -161,7 +161,9 @@ func TestImageHistoryTimestamps(t *testing.T) {
 func TestProjectLookupAndAPIFlavors(t *testing.T) {
 	ctx := context.Background()
 	conn := testutil.NewMySQLContainer(t, "project-lookup", "../sql/keystone/schema.sql")
-	testutil.SeedSQL(t, conn, `INSERT INTO project(id,name,enabled,domain_id,is_domain) VALUES ('p1','disabled',0,'d1',0)`)
+	testutil.SeedSQL(t, conn,
+		`INSERT INTO project(id,name,enabled,domain_id,is_domain) VALUES ('d1','domain',1,'d1',1)`,
+		`INSERT INTO project(id,name,enabled,domain_id,is_domain) VALUES ('p1','disabled',0,'d1',0)`)
 	project, err := keystone.New(conn).GetProject(ctx, "p1")
 	require.NoError(t, err)
 	require.Equal(t, "disabled", project.Name)
