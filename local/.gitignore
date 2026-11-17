@@ -1,0 +1,4 @@
+# Private, environment-specific material and unreleased security detail. Never committed.
+# This file is the only tracked path under local/.
+*
+!.gitignore
