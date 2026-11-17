@@ -309,6 +309,18 @@ type Quota struct {
 	Limit     sql.NullInt32
 }
 
+type Reservation struct {
+	ID         string
+	ProjectID  sql.NullString
+	Expiration sql.NullTime
+}
+
+type Resourcedelta struct {
+	Resource      string
+	ReservationID string
+	Amount        sql.NullInt32
+}
+
 type Router struct {
 	ProjectID      sql.NullString
 	ID             string

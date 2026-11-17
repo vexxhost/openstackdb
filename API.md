@@ -94,3 +94,48 @@ lifecycle metadata. Their fixed current-resource queries remain unchanged for
 exporter consumers. Deleted volume types and legacy type tables are only read
 when explicitly requested. Legacy table availability is a caller/deployment
 concern; errors are propagated rather than hidden.
+
+### Neutron quota monitoring
+
+`neutron/db.Queries.GetActiveReservationsByProject(ctx, cutoff)` accepts a
+`sql.NullTime` containing a valid UTC observation time. Callers supply UTC; the
+generated method does not validate or convert the time. An invalid `sql.NullTime`
+is passed as SQL NULL and matches no reservations.
+
+The query joins `reservations` and `resourcedeltas`, using ownership from the
+reservation record and grouping by project and resource. It supports all nine
+resources: `floatingip`, `router`, `network`, `port`, `security_group`,
+`security_group_rule`, `subnet`, `subnetpool`, and `rbac_policy`. Unknown resources
+and NULL or empty project IDs are excluded. A project needs no quota override or
+existing resource row to appear.
+
+The inclusive `expiration >= cutoff` predicate includes reservations expiring
+exactly at the cutoff and excludes expired and NULL expirations. All qualifying
+expiration groups contribute to the signed `int64` `Reserved` sum. Negative
+amounts are included without clamping. SQL SUM ignores NULL amounts; an all-NULL
+group returns zero. `InvalidAmounts` is an `int64` count of NULL or negative
+amounts, allowing callers to reject malformed aggregates even when their sum is
+zero or positive. It is not a count of invalid owners or expired reservations.
+
+The generated row retains `ProjectID sql.NullString` and `Resource string`.
+Results have no guaranteed order. A successful empty result means no matching
+reservations; query failures must never be interpreted as zero. Query, scan,
+row-iteration, and context errors propagate through the generated API.
+
+`GetResourceCountsByProject` now excludes both NULL and empty-string project IDs
+in each of its nine resource queries. This intentionally changes existing
+results: callers that previously consumed the empty-project bucket will no
+longer receive it, and totals that included that bucket may decrease. Counts for
+other owners, resource names, grouping, and generated types are unchanged.
+Counts still come directly from each resource's own row, without parent-owner,
+quota-override, or status filtering. `rbac_policy` counts rows in `networkrbacs`.
+
+`GetQuotas` is unchanged: it excludes NULL owners but retains empty-string
+owners, duplicate project/resource rows, and nullable limits (including zero and
+`-1`). Callers combining these reads must account for their different owner
+filters. Separate reads do not provide a shared snapshot by themselves.
+
+The added schema tables are local fixtures, not production migrations. Combined
+with resource-row counts, reservations support `DbQuotaNoLockDriver` monitoring;
+these reads do not model legacy cached quota-usage accounting or certify a
+deployment's quota driver or schema version.

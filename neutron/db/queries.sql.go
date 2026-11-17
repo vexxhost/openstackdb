@@ -10,6 +10,57 @@ import (
 	"database/sql"
 )
 
+const GetActiveReservationsByProject = `-- name: GetActiveReservationsByProject :many
+SELECT
+    r.project_id,
+    d.resource,
+    CAST(COALESCE(SUM(d.amount), 0) AS SIGNED) AS reserved,
+    CAST(SUM(CASE WHEN d.amount IS NULL OR d.amount < 0 THEN 1 ELSE 0 END) AS SIGNED) AS invalid_amounts
+FROM reservations r
+JOIN resourcedeltas d ON d.reservation_id = r.id
+WHERE r.expiration >= ?
+  AND r.project_id <> ''
+  AND d.resource IN ('floatingip', 'router', 'network', 'port', 'security_group', 'security_group_rule', 'subnet', 'subnetpool', 'rbac_policy')
+GROUP BY r.project_id, d.resource
+`
+
+type GetActiveReservationsByProjectRow struct {
+	ProjectID      sql.NullString
+	Resource       string
+	Reserved       int64
+	InvalidAmounts int64
+}
+
+// A single caller-supplied UTC cutoff matches Neutron's inclusive active boundary.
+// Group only by owner/resource: expiration groups must all contribute (27.0.4).
+func (q *Queries) GetActiveReservationsByProject(ctx context.Context, cutoff sql.NullTime) ([]GetActiveReservationsByProjectRow, error) {
+	rows, err := q.db.QueryContext(ctx, GetActiveReservationsByProject, cutoff)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetActiveReservationsByProjectRow
+	for rows.Next() {
+		var i GetActiveReservationsByProjectRow
+		if err := rows.Scan(
+			&i.ProjectID,
+			&i.Resource,
+			&i.Reserved,
+			&i.InvalidAmounts,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const GetAgents = `-- name: GetAgents :many
 SELECT
     a.id,
@@ -512,55 +563,55 @@ SELECT
     project_id,
     'floatingip' as resource,
     CAST(COUNT(*) AS SIGNED) as cnt
-FROM floatingips WHERE project_id IS NOT NULL GROUP BY project_id
+FROM floatingips WHERE project_id IS NOT NULL AND project_id <> '' GROUP BY project_id
 UNION ALL
 SELECT
     project_id,
     'network' as resource,
     CAST(COUNT(*) AS SIGNED) as cnt
-FROM networks WHERE project_id IS NOT NULL GROUP BY project_id
+FROM networks WHERE project_id IS NOT NULL AND project_id <> '' GROUP BY project_id
 UNION ALL
 SELECT
     project_id,
     'port' as resource,
     CAST(COUNT(*) AS SIGNED) as cnt
-FROM ports WHERE project_id IS NOT NULL GROUP BY project_id
+FROM ports WHERE project_id IS NOT NULL AND project_id <> '' GROUP BY project_id
 UNION ALL
 SELECT
     project_id,
     'router' as resource,
     CAST(COUNT(*) AS SIGNED) as cnt
-FROM routers WHERE project_id IS NOT NULL GROUP BY project_id
+FROM routers WHERE project_id IS NOT NULL AND project_id <> '' GROUP BY project_id
 UNION ALL
 SELECT
     project_id,
     'security_group' as resource,
     CAST(COUNT(*) AS SIGNED) as cnt
-FROM securitygroups WHERE project_id IS NOT NULL GROUP BY project_id
+FROM securitygroups WHERE project_id IS NOT NULL AND project_id <> '' GROUP BY project_id
 UNION ALL
 SELECT
     project_id,
     'security_group_rule' as resource,
     CAST(COUNT(*) AS SIGNED) as cnt
-FROM securitygrouprules WHERE project_id IS NOT NULL GROUP BY project_id
+FROM securitygrouprules WHERE project_id IS NOT NULL AND project_id <> '' GROUP BY project_id
 UNION ALL
 SELECT
     project_id,
     'subnet' as resource,
     CAST(COUNT(*) AS SIGNED) as cnt
-FROM subnets WHERE project_id IS NOT NULL GROUP BY project_id
+FROM subnets WHERE project_id IS NOT NULL AND project_id <> '' GROUP BY project_id
 UNION ALL
 SELECT
     project_id,
     'rbac_policy' as resource,
     CAST(COUNT(*) AS SIGNED) as cnt
-FROM networkrbacs WHERE project_id IS NOT NULL GROUP BY project_id
+FROM networkrbacs WHERE project_id IS NOT NULL AND project_id <> '' GROUP BY project_id
 UNION ALL
 SELECT
     project_id,
     'subnetpool' as resource,
     CAST(COUNT(*) AS SIGNED) as cnt
-FROM subnetpools WHERE project_id IS NOT NULL GROUP BY project_id
+FROM subnetpools WHERE project_id IS NOT NULL AND project_id <> '' GROUP BY project_id
 `
 
 type GetResourceCountsByProjectRow struct {
