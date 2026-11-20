@@ -6,6 +6,7 @@ import (
 	"context"
 	"github.com/stretchr/testify/require"
 	cinder "github.com/vexxhost/openstackdb/cinder/db"
+	designate "github.com/vexxhost/openstackdb/designate/db"
 	glance "github.com/vexxhost/openstackdb/glance/db"
 	heat "github.com/vexxhost/openstackdb/heat/db"
 	"github.com/vexxhost/openstackdb/internal/testutil"
@@ -98,6 +99,24 @@ func TestGlanceQueries(t *testing.T) {
 	var err error
 	_, err = q.ImageGetAll(ctx)
 	require.NoError(t, err, "ImageGetAll")
+}
+func TestDesignateQueries(t *testing.T) {
+	ctx := context.Background()
+	conn := testutil.NewMySQLContainer(t, "designate", "../sql/designate/schema.sql")
+	q := designate.New(conn)
+	count, err := q.ZoneCount(ctx)
+	require.NoError(t, err, "ZoneCount")
+	require.Zero(t, count)
+	testutil.SeedSQL(t, conn, `INSERT INTO zones (
+		id, shard, tenant_id, name, email, type, ttl, serial, refresh, retry,
+		expire, minimum, status, action, reverse_name
+	) VALUES (
+		'zone-1', 0, 'tenant-1', 'example.org.', 'admin@example.org', 'PRIMARY',
+		3600, 1, 3600, 600, 86400, 3600, 'ACTIVE', 'NONE', 'org.example.'
+	)`)
+	count, err = q.ZoneCount(ctx)
+	require.NoError(t, err, "ZoneCount")
+	require.EqualValues(t, 1, count)
 }
 func TestKeystoneQueries(t *testing.T) {
 	ctx := context.Background()
