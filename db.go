@@ -41,6 +41,9 @@ func ConnectContext(ctx context.Context, connectionString string, opts Connectio
 // Open creates a pool from an oslo.db-style MySQL URL without contacting the
 // server. The pool connects on first use and again after a lost connection, so
 // a caller can hold a pool for a database that is not reachable yet.
+// The pool does not fail fast while the database is unreachable: Open adds
+// no dial timeout of its own, so bound each call with a context deadline, for
+// example with QueryContext or PingContext.
 // The caller owns the returned pool and must close it.
 func Open(connectionString string, opts ConnectionOptions) (*sql.DB, error) {
 	if opts.MaxOpenConns < 0 || opts.MaxIdleConns < 0 || opts.ConnMaxLifetime < 0 {

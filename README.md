@@ -52,7 +52,9 @@ func instanceCount(ctx context.Context, databaseURL, projectID string) (int, err
 ```
 
 `Open` returns the same pool without the ping, for callers that must start
-before the database is reachable; the pool connects on first use.
+before the database is reachable; the pool connects on first use. It does not
+fail fast during an outage, so give each query a context deadline.
+
 Existing `*sql.DB` and `*sql.Tx` values can also be passed to service constructors.
 Generated query sets support `WithTx`. Callers own pools, deadlines, region/cell
 selection, credentials, and authorization. Use database accounts with SELECT access.
